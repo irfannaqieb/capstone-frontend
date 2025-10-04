@@ -2,7 +2,7 @@
   <div
     class="mx-auto flex min-h-screen w-full max-w-3xl flex-col items-center justify-center p-4"
   >
-    <Button>Button</Button>
+    <ProgressRow :current="10" :total="300" />
   </div>
 </template>
 
