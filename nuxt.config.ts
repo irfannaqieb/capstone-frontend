@@ -28,4 +28,7 @@ export default defineNuxtConfig({
       apiBase: process.env.BACKEND_URL,
     },
   },
+  typescript: {
+    typeCheck: true,
+  },
 });
