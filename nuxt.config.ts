@@ -23,4 +23,9 @@ export default defineNuxtConfig({
      */
     componentDir: "./components/ui",
   },
+  runtimeConfig: {
+    public: {
+      apiBase: process.env.BACKEND_URL,
+    },
+  },
 });
