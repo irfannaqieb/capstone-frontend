@@ -6,7 +6,7 @@ export interface ImageDTO {
   model: ModelName;
 }
 
-export interface VoteDTO {
+export interface PairDTO {
   pair_id: string;
   prompt_id: string;
   prompt_text: string;
@@ -18,5 +18,5 @@ export interface VoteDTO {
 export interface VotePayload {
   session_id: string;
   pair_id: string;
-  winner_model: ModelName | "tie" | "skip";
+  winner_model: ModelName | "tie";
 }
