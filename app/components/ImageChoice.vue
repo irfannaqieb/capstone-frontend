@@ -17,7 +17,7 @@
         </span>
       </div>
 
-      <CardContent class="p-3">
+      <CardContent class="h-full w-full p-2">
         <!-- Skeleton while loading -->
         <div class="relative">
           <template v-if="props.ratio && props.ratio > 0">
@@ -26,42 +26,52 @@
                 :src="src"
                 :alt="alt || `Image ${label}`"
                 class="block h-full w-full object-contain"
-                loading="lazy"
+                loading="eager"
                 decoding="async"
                 @load="onLoad"
                 @error="onError"
-                v-show="loaded"
+                v-show="loaded && !errored"
               />
-              <Skeleton v-show="!loaded" class="h-full w-full rounded-xl" />
+              <Skeleton
+                v-show="!loaded && !errored"
+                class="h-full w-full rounded-xl"
+              />
+
             </AspectRatio>
           </template>
 
           <template v-else>
             <!-- Fixed height container for consistent card heights -->
-            <div class="relative h-80 md:h-96 w-full">
+            <div class="relative h-92 md:h-[28rem] lg:h-[28rem] w-full">
               <img
                 :src="src"
                 :alt="alt || `Image ${label}`"
                 class="block h-full w-full object-contain rounded-xl"
-                loading="lazy"
+                loading="eager"
                 decoding="async"
                 @load="onLoad"
                 @error="onError"
-                v-show="loaded"
+                v-show="loaded && !errored"
               />
-              <Skeleton v-show="!loaded" class="h-full w-full rounded-xl" />
+              <Skeleton
+                v-show="!loaded && !errored"
+                class="h-full w-full rounded-xl"
+              />
             </div>
           </template>
 
           <!-- Error state -->
           <div
             v-if="errored"
-            class="absolute inset-0 flex items-center justify-center"
+            class="absolute inset-0 flex items-center justify-center bg-muted/50 rounded-xl"
           >
-            <div
-              class="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground"
-            >
-              Failed to load image.
+            <div class="text-center space-y-2 px-4">
+              <div class="text-destructive text-sm font-medium">
+                Failed to load image
+              </div>
+              <div class="text-xs text-muted-foreground break-all">
+                {{ src }}
+              </div>
             </div>
           </div>
         </div>
@@ -74,6 +84,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { ref, watch } from "vue";
 
 const props = withDefaults(
   defineProps<{
@@ -94,9 +105,20 @@ const emit = defineEmits<{ (e: "choose"): void }>();
 const loaded = ref(false);
 const errored = ref(false);
 
+// Reset loading state when src changes
+watch(
+  () => props.src,
+  () => {
+    loaded.value = false;
+    errored.value = false;
+  },
+  { immediate: true }
+);
+
 function onLoad() {
   loaded.value = true;
 }
+
 function onError() {
   errored.value = true;
   loaded.value = true;
