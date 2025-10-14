@@ -18,9 +18,17 @@
       </div>
 
       <!-- Done State -->
-      <div v-else-if="isDone" class="text-center space-y-4">
-        <h2 class="text-2xl md:text-3xl font-bold">🎉 All Done!</h2>
-        <p class="text-muted-foreground">Thank you for participating in this preference survey.</p>
+      <div v-else-if="isDone" class="text-center space-y-6 max-w-md mx-auto">
+        <div class="text-6xl">🎉</div>
+        <div class="space-y-2">
+          <h2 class="text-2xl md:text-3xl font-bold">All Done!</h2>
+          <p class="text-muted-foreground">
+            Thank you for participating in this preference survey. Your contributions help improve AI-generated images.
+          </p>
+        </div>
+        <div class="text-sm text-muted-foreground/80 bg-muted/50 rounded-lg p-4">
+          You've completed all available image pairs. Feel free to close this page.
+        </div>
       </div>
 
       <!-- Main Content -->
@@ -77,6 +85,7 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from "vue";
 import { Button } from "@/components/ui/button";
 
 const { pair, isLoading, errorMsg, isDone, getNext, vote } = useVoting();

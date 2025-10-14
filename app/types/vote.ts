@@ -24,3 +24,13 @@ export interface VotePayload {
   left_model: ModelName;
   reaction_time_ms: number;
 }
+
+export interface SessionStatus {
+  session_id: string;
+  status: "active" | "completed" | "abandoned";
+  created_at: string;
+  last_activity: string;
+  completed_at: string | null;
+  total_votes: number;
+  total_pairs: number;
+}

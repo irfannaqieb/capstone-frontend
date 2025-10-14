@@ -2,7 +2,7 @@ import type { PairDTO, VotePayload, ModelName } from "~/types/vote";
 
 export const useVoting = () => {
   const { $api } = useNuxtApp();
-  const { sessionId, isInitializing } = useSessionId();
+  const { sessionId, isInitializing, resetSession, sessionStatus } = useSessionId();
 
   // Initialize pair from localStorage if available
   const pair = useState<PairDTO | null>("currentPair", () => {
@@ -16,6 +16,16 @@ export const useVoting = () => {
   const isLoading = useState<boolean>("v_loading", () => false);
   const errorMsg = useState<string | null>("v_error", () => null);
   const isDone = useState<boolean>("v_done", () => false);
+  
+  // Check if session is already completed on mount
+  if (import.meta.client) {
+    watch(sessionStatus, (status) => {
+      if (status === "completed") {
+        isDone.value = true;
+        pair.value = null; // Clear any cached pair
+      }
+    }, { immediate: true });
+  }
   
   // Initialize pairStartTime from localStorage if available
   const pairStartTime = useState<number | null>("pairStartTime", () => {
@@ -45,7 +55,7 @@ export const useVoting = () => {
     });
   }
 
-  const getNext = async () => {
+  const getNext = async (retryCount = 0) => {
     try {
       isLoading.value = true;
       errorMsg.value = null;
@@ -60,6 +70,12 @@ export const useVoting = () => {
             }
           }, 100);
         });
+      }
+
+      // If session is already completed, don't fetch next pair
+      if (sessionStatus.value === "completed") {
+        isDone.value = true;
+        return;
       }
 
       // Ensure we have a valid session ID (only available on client)
@@ -81,6 +97,17 @@ export const useVoting = () => {
         pairStartTime.value = Date.now();
       }
     } catch (error: any) {
+      // Handle session-related errors (404, 401, 422, etc.)
+      const status = error?.status || error?.statusCode;
+      const isSessionError = status === 404 || status === 401 || status === 422;
+      
+      if (isSessionError && retryCount === 0) {
+        console.log("Session error detected, resetting session and retrying...");
+        await resetSession();
+        // Retry once with new session
+        return getNext(1);
+      }
+      
       errorMsg.value =
         error?.data?.detail || error?.message || "Failed to load next pair";
     } finally {
@@ -88,8 +115,14 @@ export const useVoting = () => {
     }
   };
 
-  const vote = async (choice: "left" | "right" | "tie") => {
+  const vote = async (choice: "left" | "right" | "tie", retryCount = 0) => {
     if (!pair.value) return;
+    
+    // Prevent voting if session is completed
+    if (sessionStatus.value === "completed") {
+      errorMsg.value = "This session has been completed. Thank you for voting!";
+      return;
+    }
 
     // Determine the winner model based on user's choice
     let winnerModel: ModelName | "tie";
@@ -128,6 +161,18 @@ export const useVoting = () => {
       
       await getNext();
     } catch (error: any) {
+      // Handle session-related errors
+      const status = error?.status || error?.statusCode;
+      const isSessionError = status === 404 || status === 401 || status === 422;
+      
+      if (isSessionError && retryCount === 0) {
+        console.log("Session error during vote, resetting session...");
+        pair.value = prev; // restore pair for retry
+        await resetSession();
+        // Retry once with new session
+        return vote(choice, 1);
+      }
+      
       pair.value = prev; // restore previous pair on error
       throw error;
     }
