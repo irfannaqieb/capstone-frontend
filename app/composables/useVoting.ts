@@ -1,13 +1,13 @@
-import type { PairDTO, VotePayload, ModelName } from "~/types/vote";
+import type { PromptDTO, VotePayload, ModelName } from "~/types/vote";
 
 export const useVoting = () => {
   const { $api } = useNuxtApp();
   const { sessionId, isInitializing, resetSession, sessionStatus } = useSessionId();
 
-  // Initialize pair from localStorage if available
-  const pair = useState<PairDTO | null>("currentPair", () => {
+  // Initialize prompt from localStorage if available
+  const prompt = useState<PromptDTO | null>("currentPrompt", () => {
     if (import.meta.client) {
-      const saved = localStorage.getItem('hp_current_pair');
+      const saved = localStorage.getItem('hp_current_prompt');
       return saved ? JSON.parse(saved) : null;
     }
     return null;
@@ -22,35 +22,35 @@ export const useVoting = () => {
     watch(sessionStatus, (status) => {
       if (status === "completed") {
         isDone.value = true;
-        pair.value = null; // Clear any cached pair
+        prompt.value = null; // Clear any cached prompt
       }
     }, { immediate: true });
   }
   
-  // Initialize pairStartTime from localStorage if available
-  const pairStartTime = useState<number | null>("pairStartTime", () => {
+  // Initialize promptStartTime from localStorage if available
+  const promptStartTime = useState<number | null>("promptStartTime", () => {
     if (import.meta.client) {
-      const saved = localStorage.getItem('hp_pair_start_time');
+      const saved = localStorage.getItem('hp_prompt_start_time');
       return saved ? parseInt(saved, 10) : null;
     }
     return null;
   });
 
-  // Watch for pair changes and persist to localStorage
+  // Watch for prompt changes and persist to localStorage
   if (import.meta.client) {
-    watch(pair, (newPair) => {
-      if (newPair) {
-        localStorage.setItem('hp_current_pair', JSON.stringify(newPair));
+    watch(prompt, (newPrompt) => {
+      if (newPrompt) {
+        localStorage.setItem('hp_current_prompt', JSON.stringify(newPrompt));
       } else {
-        localStorage.removeItem('hp_current_pair');
+        localStorage.removeItem('hp_current_prompt');
       }
     }, { deep: true });
 
-    watch(pairStartTime, (newTime) => {
+    watch(promptStartTime, (newTime) => {
       if (newTime !== null) {
-        localStorage.setItem('hp_pair_start_time', newTime.toString());
+        localStorage.setItem('hp_prompt_start_time', newTime.toString());
       } else {
-        localStorage.removeItem('hp_pair_start_time');
+        localStorage.removeItem('hp_prompt_start_time');
       }
     });
   }
@@ -72,7 +72,7 @@ export const useVoting = () => {
         });
       }
 
-      // If session is already completed, don't fetch next pair
+      // If session is already completed, don't fetch next prompt
       if (sessionStatus.value === "completed") {
         isDone.value = true;
         return;
@@ -83,18 +83,18 @@ export const useVoting = () => {
         throw new Error("Session ID not available. Please refresh the page.");
       }
 
-      const data = await $api<PairDTO>(
-        `/pairs/next?session_id=${sessionId.value}`,
+      const data = await $api<PromptDTO>(
+        `/prompts/next?session_id=${sessionId.value}`,
         {
           method: "GET",
         }
       );
 
-      pair.value = data;
+      prompt.value = data;
       isDone.value = data.done;
-      // Record when the pair is shown to the user
+      // Record when the prompt is shown to the user
       if (!data.done) {
-        pairStartTime.value = Date.now();
+        promptStartTime.value = Date.now();
       }
     } catch (error: any) {
       // Handle session-related errors (404, 401, 422, etc.)
@@ -109,14 +109,14 @@ export const useVoting = () => {
       }
       
       errorMsg.value =
-        error?.data?.detail || error?.message || "Failed to load next pair";
+        error?.data?.detail || error?.message || "Failed to load next prompt";
     } finally {
       isLoading.value = false;
     }
   };
 
-  const vote = async (choice: "left" | "right" | "tie", retryCount = 0) => {
-    if (!pair.value) return;
+  const vote = async (winnerModel: ModelName | "tie", retryCount = 0) => {
+    if (!prompt.value) return;
     
     // Prevent voting if session is completed
     if (sessionStatus.value === "completed") {
@@ -124,39 +124,28 @@ export const useVoting = () => {
       return;
     }
 
-    // Determine the winner model based on user's choice
-    let winnerModel: ModelName | "tie";
-    if (choice === "tie") {
-      winnerModel = "tie";
-    } else if (choice === "left") {
-      winnerModel = pair.value.left.model;
-    } else {
-      winnerModel = pair.value.right.model;
-    }
-
     // Calculate reaction time
-    const reactionTimeMs = pairStartTime.value 
-      ? Date.now() - pairStartTime.value 
+    const reactionTimeMs = promptStartTime.value 
+      ? Date.now() - promptStartTime.value 
       : 0;
 
     const payload: VotePayload = {
       session_id: sessionId.value,
-      pair_id: pair.value.pair_id,
+      prompt_id: prompt.value.prompt_id,
       winner_model: winnerModel,
-      left_model: pair.value.left.model,
       reaction_time_ms: reactionTimeMs,
     };
 
-    const prev = pair.value;
-    pair.value = null; // clear current pair to show loading state
+    const prev = prompt.value;
+    prompt.value = null; // clear current prompt to show loading state
 
     try {
       await $api("/votes", { method: "POST", body: payload });
       
       // Clear localStorage after successful vote
       if (import.meta.client) {
-        localStorage.removeItem('hp_current_pair');
-        localStorage.removeItem('hp_pair_start_time');
+        localStorage.removeItem('hp_current_prompt');
+        localStorage.removeItem('hp_prompt_start_time');
       }
       
       await getNext();
@@ -167,19 +156,19 @@ export const useVoting = () => {
       
       if (isSessionError && retryCount === 0) {
         console.log("Session error during vote, resetting session...");
-        pair.value = prev; // restore pair for retry
+        prompt.value = prev; // restore prompt for retry
         await resetSession();
         // Retry once with new session
-        return vote(choice, 1);
+        return vote(winnerModel, 1);
       }
       
-      pair.value = prev; // restore previous pair on error
+      prompt.value = prev; // restore previous prompt on error
       throw error;
     }
   };
 
   return {
-    pair,
+    prompt,
     isLoading,
     errorMsg,
     isDone,

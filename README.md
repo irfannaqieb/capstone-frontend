@@ -100,8 +100,8 @@ Check out the [deployment documentation](https://nuxt.com/docs/getting-started/d
 
 The application expects the following backend endpoints:
 
-#### GET `/pair/next`
-Fetches the next image pair for voting.
+#### GET `/prompts/next`
+Fetches the next prompt with 5 images for voting.
 
 **Query Parameters:**
 - `session_id`: Unique session identifier (UUID)
@@ -110,32 +110,65 @@ Fetches the next image pair for voting.
 ```json
 {
   "done": false,
-  "pair_id": "a1b2c3d4-1234-5678-90ab-cdef12345678",
-  "prompt_id": "prompt_001",
-  "prompt_text": "A sunset over mountains",
-  "left": {
-    "url": "https://example.com/image1.jpg",
-    "model": "gpt5"
-  },
-  "right": {
-    "url": "https://example.com/image2.jpg",
-    "model": "gemini25"
-  },
-  "total_pairs": 20,
-  "pairs_completed": 1,
-  "pairs_remaining": 19
+  "prompt_id": "123",
+  "prompt_text": "A cat in space...",
+  "images": [
+    {
+      "image_id": "uuid",
+      "url": "https://...",
+      "model": "kolors"
+    },
+    {
+      "image_id": "uuid",
+      "url": "https://...",
+      "model": "flux1_krea"
+    },
+    {
+      "image_id": "uuid",
+      "url": "https://...",
+      "model": "gemini25"
+    },
+    {
+      "image_id": "uuid",
+      "url": "https://...",
+      "model": "flux1_dev"
+    },
+    {
+      "image_id": "uuid",
+      "url": "https://...",
+      "model": "gpt5"
+    }
+  ],
+  "index": 1,
+  "total": 30,
+  "chunk_id": "uuid"
 }
 ```
 
 #### POST `/votes`
-Submits a vote for an image pair.
+Submits a vote for the selected image.
 
 **Request Body:**
 ```json
 {
-  "session_id": "550e8400-e29b-41d4-a716-446655440000",
-  "pair_id": "a1b2c3d4-1234-5678-90ab-cdef12345678",
-  "winner_model": "gpt5" // or "gemini25" or "tie"
+  "session_id": "uuid",
+  "prompt_id": "123",
+  "winner_model": "gpt5", // or "tie"
+  "reaction_time_ms": 1500
+}
+```
+
+#### GET `/session/{id}/status`
+Get session status and progress.
+
+**Response:**
+```json
+{
+  "session_id": "uuid",
+  "status": "active",
+  "total_votes": 5,
+  "total_prompts": 30,
+  "chunk_id": "uuid"
 }
 ```
 

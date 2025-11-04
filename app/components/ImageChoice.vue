@@ -18,62 +18,39 @@
       </div>
 
       <CardContent class="h-full w-full p-2">
-        <!-- Skeleton while loading -->
-        <div class="relative">
-          <template v-if="props.ratio && props.ratio > 0">
-            <AspectRatio :ratio="props.ratio">
-              <img
-                :src="src"
-                :alt="alt || `Image ${label}`"
-                class="block h-full w-full object-contain"
-                loading="eager"
-                decoding="async"
-                @load="onLoad"
-                @error="onError"
-                v-show="loaded && !errored"
-              />
-              <Skeleton
-                v-show="!loaded && !errored"
-                class="h-full w-full rounded-xl"
-              />
-
-            </AspectRatio>
-          </template>
-
-          <template v-else>
-            <!-- Fixed height container for consistent card heights -->
-            <div class="relative h-92 md:h-[28rem] lg:h-[28rem] w-full">
-              <img
-                :src="src"
-                :alt="alt || `Image ${label}`"
-                class="block h-full w-full object-contain rounded-xl"
-                loading="eager"
-                decoding="async"
-                @load="onLoad"
-                @error="onError"
-                v-show="loaded && !errored"
-              />
-              <Skeleton
-                v-show="!loaded && !errored"
-                class="h-full w-full rounded-xl"
-              />
-            </div>
-          </template>
-
-          <!-- Error state -->
-          <div
-            v-if="errored"
-            class="absolute inset-0 flex items-center justify-center bg-muted/50 rounded-xl"
-          >
-            <div class="text-center space-y-2 px-4">
-              <div class="text-destructive text-sm font-medium">
-                Failed to load image
-              </div>
-              <div class="text-xs text-muted-foreground break-all">
-                {{ src }}
+        <!-- 1:1 Aspect Ratio Container for 1024x1024 images -->
+        <div class="relative w-full">
+          <AspectRatio :ratio="1">
+            <img
+              :src="src"
+              :alt="alt || `Image ${label}`"
+              class="block h-full w-full object-cover rounded-xl"
+              loading="eager"
+              decoding="async"
+              @load="onLoad"
+              @error="onError"
+              v-show="loaded && !errored"
+            />
+            <Skeleton
+              v-show="!loaded && !errored"
+              class="h-full w-full rounded-xl"
+            />
+            
+            <!-- Error state -->
+            <div
+              v-if="errored"
+              class="absolute inset-0 flex items-center justify-center bg-muted/50 rounded-xl"
+            >
+              <div class="text-center space-y-2 px-4">
+                <div class="text-destructive text-sm font-medium">
+                  Failed to load image
+                </div>
+                <div class="text-xs text-muted-foreground break-all">
+                  {{ src }}
+                </div>
               </div>
             </div>
-          </div>
+          </AspectRatio>
         </div>
       </CardContent>
     </Card>
@@ -88,16 +65,14 @@ import { ref, watch } from "vue";
 
 const props = withDefaults(
   defineProps<{
-    label: "A" | "B";
+    label: "A" | "B" | "C" | "D" | "E";
     src: string;
     alt?: string;
     disabled?: boolean;
-    ratio?: number; // e.g., 4/3, 16/9. Defaults to auto-fit.
   }>(),
   {
     alt: "",
     disabled: false,
-    ratio: 0, // 0 = no enforced ratio; use natural size
   }
 );
 
