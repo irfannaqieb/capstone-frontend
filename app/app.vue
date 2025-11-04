@@ -16,7 +16,16 @@
       <!-- Error State -->
       <div v-else-if="errorMsg" class="text-center space-y-4">
         <div class="text-destructive text-lg font-medium">{{ errorMsg }}</div>
-        <Button @click="getNext">Try Again</Button>
+        <div class="flex gap-3 justify-center">
+          <Button @click="getNext">Try Again</Button>
+          <Button 
+            variant="outline" 
+            @click="handleStartFresh"
+            :disabled="isResetting"
+          >
+            {{ isResetting ? 'Resetting...' : 'Start Fresh' }}
+          </Button>
+        </div>
       </div>
 
       <!-- Done State -->
@@ -34,10 +43,46 @@
         >
           You've completed all available prompts. Feel free to close this page.
         </div>
+        
+        <!-- Start Fresh Session Button -->
+        <Button
+          variant="outline"
+          size="lg"
+          class="mt-4"
+          @click="handleStartFresh"
+          :disabled="isResetting"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+            <path d="M3 21v-5h5"/>
+          </svg>
+          {{ isResetting ? 'Starting Fresh...' : 'Start Fresh Session' }}
+        </Button>
       </div>
 
       <!-- Main Content -->
       <template v-else-if="prompt">
+        <!-- Start Fresh Button - Fixed at Top -->
+        <div class="w-full flex justify-end mb-2 md:mb-0 md:absolute md:top-4 md:right-4 lg:right-8 md:z-10">
+          <Button
+            variant="ghost"
+            size="sm"
+            class="text-xs text-muted-foreground hover:text-destructive"
+            @click="confirmReset"
+            :disabled="isLoading"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+              <path d="M21 3v5h-5"/>
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+              <path d="M3 21v-5h5"/>
+            </svg>
+            Start Fresh
+          </Button>
+        </div>
+
         <!-- Header Section -->
         <div class="w-full space-y-4">
           <div class="text-center space-y-2 mb-6">
@@ -103,11 +148,14 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { onMounted, ref } from "vue";
 import { Button } from "@/components/ui/button";
 import type { ModelName } from "~/types/vote";
 
 const { prompt, isLoading, errorMsg, isDone, getNext, vote } = useVoting();
+const { resetSession } = useSessionId();
+
+const isResetting = ref(false);
 
 // Load first prompt on mount
 onMounted(() => {
@@ -130,6 +178,33 @@ async function choose(model: ModelName | "tie") {
   } catch (error: any) {
     console.error("Vote failed:", error);
     // Error is already handled in the composable
+  }
+}
+
+// Handle start fresh session with confirmation
+async function confirmReset() {
+  const confirmed = confirm(
+    "Are you sure you want to start a fresh session? This will reset all your progress."
+  );
+  
+  if (confirmed) {
+    await handleStartFresh();
+  }
+}
+
+// Start fresh session
+async function handleStartFresh() {
+  if (isResetting.value) return;
+  
+  try {
+    isResetting.value = true;
+    await resetSession();
+    // Session is reset, now fetch the first prompt
+    await getNext();
+  } catch (error: any) {
+    console.error("Failed to start fresh session:", error);
+  } finally {
+    isResetting.value = false;
   }
 }
 </script>
