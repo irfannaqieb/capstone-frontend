@@ -4,14 +4,24 @@ export default defineNuxtPlugin(() => {
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const theme = saved ?? (prefersDark ? 'dark' : 'light');
   const root = document.documentElement;
-  root.classList.toggle('dark', theme === 'dark');
+  
+  // Explicitly set the class based on theme
+  if (theme === 'dark') {
+    root.classList.add('dark');
+  } else {
+    root.classList.remove('dark');
+  }
 
   if (!saved) {
     // Keep in sync with system only if user hasn't chosen explicitly
     const mql = window.matchMedia('(prefers-color-scheme: dark)');
     const onChange = (e: MediaQueryListEvent) => {
       if (!localStorage.getItem(storageKey)) {
-        root.classList.toggle('dark', e.matches);
+        if (e.matches) {
+          root.classList.add('dark');
+        } else {
+          root.classList.remove('dark');
+        }
       }
     };
     mql.addEventListener('change', onChange);

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="min-h-screen w-full bg-gradient-to-br from-background via-background to-muted/20"
+    class="min-h-screen w-full bg-gradient-to-br from-background via-background to-muted/10 dark:to-muted/5"
   >
     <div
       class="mx-auto flex min-h-screen w-full flex-col items-center justify-center gap-8 p-4 md:p-8 lg:p-12"
