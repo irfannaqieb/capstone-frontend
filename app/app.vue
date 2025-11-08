@@ -7,6 +7,17 @@
     >
       <!-- Loading State -->
       <div v-if="isLoading && !prompt" class="text-center space-y-4">
+        <div class="absolute top-4 right-4 lg:right-8 z-10">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Toggle theme"
+            @click="toggleTheme"
+          >
+            <Sun v-if="theme === 'light'" class="h-4 w-4" />
+            <Moon v-else class="h-4 w-4" />
+          </Button>
+        </div>
         <div
           class="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"
         ></div>
@@ -15,6 +26,17 @@
 
       <!-- Error State -->
       <div v-else-if="errorMsg" class="text-center space-y-4">
+        <div class="absolute top-4 right-4 lg:right-8 z-10">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Toggle theme"
+            @click="toggleTheme"
+          >
+            <Sun v-if="theme === 'light'" class="h-4 w-4" />
+            <Moon v-else class="h-4 w-4" />
+          </Button>
+        </div>
         <div class="text-destructive text-lg font-medium">{{ errorMsg }}</div>
         <div class="flex gap-3 justify-center">
           <Button @click="getNext">Try Again</Button>
@@ -30,6 +52,17 @@
 
       <!-- Done State -->
       <div v-else-if="isDone" class="text-center space-y-6 max-w-md mx-auto">
+        <div class="absolute top-4 right-4 lg:right-8 z-10">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Toggle theme"
+            @click="toggleTheme"
+          >
+            <Sun v-if="theme === 'light'" class="h-4 w-4" />
+            <Moon v-else class="h-4 w-4" />
+          </Button>
+        </div>
         <div class="text-6xl">🎉</div>
         <div class="space-y-2">
           <h2 class="text-2xl md:text-3xl font-bold">All Done!</h2>
@@ -65,7 +98,16 @@
       <!-- Main Content -->
       <template v-else-if="prompt">
         <!-- Start Fresh Button - Fixed at Top -->
-        <div class="w-full flex justify-end mb-2 md:mb-0 md:absolute md:top-4 md:right-4 lg:right-8 md:z-10">
+        <div class="w-full flex justify-end gap-2 mb-2 md:mb-0 md:absolute md:top-4 md:right-4 lg:right-8 md:z-10">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Toggle theme"
+            @click="toggleTheme"
+          >
+            <Sun v-if="theme === 'light'" class="h-4 w-4" />
+            <Moon v-else class="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -150,10 +192,12 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { Button } from "@/components/ui/button";
+import { Sun, Moon } from "lucide-vue-next";
 import type { ModelName } from "~/types/vote";
 
 const { prompt, isLoading, errorMsg, isDone, getNext, vote } = useVoting();
 const { resetSession } = useSessionId();
+const { theme, toggleTheme } = useColorMode();
 
 const isResetting = ref(false);
 
