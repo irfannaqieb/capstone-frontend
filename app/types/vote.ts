@@ -32,3 +32,8 @@ export interface SessionStatus {
   total_votes: number;
   total_prompts: number;
 }
+
+export interface PromptHistory {
+  prompt: PromptDTO;
+  vote: ModelName | "tie" | null;
+}

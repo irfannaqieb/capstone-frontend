@@ -1,57 +1,83 @@
-import type { PromptDTO, VotePayload, ModelName } from "~/types/vote";
+import type { PromptDTO, VotePayload, ModelName, PromptHistory } from "~/types/vote";
 
 export const useVoting = () => {
   const { $api } = useNuxtApp();
   const { sessionId, isInitializing, resetSession, sessionStatus } = useSessionId();
 
-  // Initialize prompt from localStorage if available
-  const prompt = useState<PromptDTO | null>("currentPrompt", () => {
+  // Initialize history from localStorage if available
+  const history = useState<PromptHistory[]>("promptHistory", () => {
     if (import.meta.client) {
-      const saved = localStorage.getItem('hp_current_prompt');
-      return saved ? JSON.parse(saved) : null;
+      const saved = localStorage.getItem('hp_prompt_history');
+      return saved ? JSON.parse(saved) : [];
     }
-    return null;
+    return [];
+  });
+
+  // Track current position in history (-1 means at the latest/end)
+  const currentHistoryIndex = useState<number>("currentHistoryIndex", () => {
+    if (import.meta.client) {
+      const saved = localStorage.getItem('hp_history_index');
+      return saved ? parseInt(saved, 10) : -1;
+    }
+    return -1;
+  });
+
+  // Current prompt is derived from history
+  const prompt = computed(() => {
+    if (history.value.length === 0) return null;
+    const index = currentHistoryIndex.value === -1 
+      ? history.value.length - 1 
+      : currentHistoryIndex.value;
+    return history.value[index]?.prompt || null;
   });
 
   const isLoading = useState<boolean>("v_loading", () => false);
   const errorMsg = useState<string | null>("v_error", () => null);
   const isDone = useState<boolean>("v_done", () => false);
+
+  // Check if we can go back in history
+  const canGoBack = computed(() => {
+    const index = currentHistoryIndex.value === -1 
+      ? history.value.length - 1 
+      : currentHistoryIndex.value;
+    return index > 0;
+  });
   
   // Check if session is already completed on mount
   if (import.meta.client) {
     watch(sessionStatus, (status) => {
       if (status === "completed") {
         isDone.value = true;
-        prompt.value = null; // Clear any cached prompt
+        history.value = []; // Clear history
       }
     }, { immediate: true });
   }
   
-  // Initialize promptStartTime from localStorage if available
-  const promptStartTime = useState<number | null>("promptStartTime", () => {
-    if (import.meta.client) {
-      const saved = localStorage.getItem('hp_prompt_start_time');
-      return saved ? parseInt(saved, 10) : null;
-    }
-    return null;
-  });
+  // Track when each prompt is shown (map of prompt_id to timestamp)
+  const promptStartTimes = useState<Record<string, number>>("promptStartTimes", () => ({}));
 
-  // Watch for prompt changes and persist to localStorage
+  // Watch for history changes and persist to localStorage
   if (import.meta.client) {
-    watch(prompt, (newPrompt) => {
-      if (newPrompt) {
-        localStorage.setItem('hp_current_prompt', JSON.stringify(newPrompt));
-      } else {
-        localStorage.removeItem('hp_current_prompt');
-      }
+    watch(history, (newHistory) => {
+      localStorage.setItem('hp_prompt_history', JSON.stringify(newHistory));
     }, { deep: true });
 
-    watch(promptStartTime, (newTime) => {
-      if (newTime !== null) {
-        localStorage.setItem('hp_prompt_start_time', newTime.toString());
-      } else {
-        localStorage.removeItem('hp_prompt_start_time');
+    watch(currentHistoryIndex, (newIndex) => {
+      localStorage.setItem('hp_history_index', newIndex.toString());
+    });
+
+    // Listen for browser back/forward buttons
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state?.historyIndex !== undefined) {
+        currentHistoryIndex.value = event.state.historyIndex;
       }
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    
+    // Cleanup on unmount
+    onUnmounted(() => {
+      window.removeEventListener('popstate', handlePopState);
     });
   }
 
@@ -90,11 +116,27 @@ export const useVoting = () => {
         }
       );
 
-      prompt.value = data;
+      // Add new prompt to history
+      history.value.push({
+        prompt: data,
+        vote: null
+      });
+      
+      // Set current index to the new prompt (end of history)
+      currentHistoryIndex.value = -1;
+      
       isDone.value = data.done;
+      
       // Record when the prompt is shown to the user
-      if (!data.done) {
-        promptStartTime.value = Date.now();
+      if (!data.done && import.meta.client) {
+        promptStartTimes.value[data.prompt_id] = Date.now();
+        
+        // Push browser history state
+        window.history.pushState(
+          { historyIndex: history.value.length - 1 },
+          '',
+          window.location.href
+        );
       }
     } catch (error: any) {
       // Handle session-related errors (404, 401, 422, etc.)
@@ -124,31 +166,56 @@ export const useVoting = () => {
       return;
     }
 
+    const currentPrompt = prompt.value;
+    const currentIndex = currentHistoryIndex.value === -1 
+      ? history.value.length - 1 
+      : currentHistoryIndex.value;
+
     // Calculate reaction time
-    const reactionTimeMs = promptStartTime.value 
-      ? Date.now() - promptStartTime.value 
-      : 0;
+    const startTime = promptStartTimes.value[currentPrompt.prompt_id];
+    const reactionTimeMs = startTime ? Date.now() - startTime : 0;
 
     const payload: VotePayload = {
       session_id: sessionId.value,
-      prompt_id: prompt.value.prompt_id,
+      prompt_id: currentPrompt.prompt_id,
       winner_model: winnerModel,
       reaction_time_ms: reactionTimeMs,
     };
 
-    const prev = prompt.value;
-    prompt.value = null; // clear current prompt to show loading state
-
     try {
+      isLoading.value = true;
       await $api("/votes", { method: "POST", body: payload });
       
-      // Clear localStorage after successful vote
-      if (import.meta.client) {
-        localStorage.removeItem('hp_current_prompt');
-        localStorage.removeItem('hp_prompt_start_time');
+      // Update the vote in history
+      if (history.value[currentIndex]) {
+        history.value[currentIndex].vote = winnerModel;
       }
+
+      // Check if we're at the end of history
+      const isAtEnd = currentIndex === history.value.length - 1;
       
-      await getNext();
+      if (isAtEnd) {
+        // Fetch next prompt
+        await getNext();
+      } else {
+        // Move forward in history (preserve future rounds)
+        currentHistoryIndex.value = currentIndex + 1;
+        
+        // Push browser history state
+        if (import.meta.client) {
+          window.history.pushState(
+            { historyIndex: currentIndex + 1 },
+            '',
+            window.location.href
+          );
+          
+          // Record start time for this prompt if not already recorded
+          const nextPrompt = history.value[currentIndex + 1]?.prompt;
+          if (nextPrompt && !promptStartTimes.value[nextPrompt.prompt_id]) {
+            promptStartTimes.value[nextPrompt.prompt_id] = Date.now();
+          }
+        }
+      }
     } catch (error: any) {
       // Handle session-related errors
       const status = error?.status || error?.statusCode;
@@ -156,14 +223,61 @@ export const useVoting = () => {
       
       if (isSessionError && retryCount === 0) {
         console.log("Session error during vote, resetting session...");
-        prompt.value = prev; // restore prompt for retry
         await resetSession();
         // Retry once with new session
         return vote(winnerModel, 1);
       }
       
-      prompt.value = prev; // restore previous prompt on error
       throw error;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  // Navigate back in history
+  const goBack = () => {
+    if (!canGoBack.value) return;
+    
+    const currentIndex = currentHistoryIndex.value === -1 
+      ? history.value.length - 1 
+      : currentHistoryIndex.value;
+    
+    const newIndex = currentIndex - 1;
+    currentHistoryIndex.value = newIndex;
+    
+    // Update browser history
+    if (import.meta.client) {
+      window.history.pushState(
+        { historyIndex: newIndex },
+        '',
+        window.location.href
+      );
+      
+      // Record start time for this prompt if not already recorded
+      const prevPrompt = history.value[newIndex]?.prompt;
+      if (prevPrompt && !promptStartTimes.value[prevPrompt.prompt_id]) {
+        promptStartTimes.value[prevPrompt.prompt_id] = Date.now();
+      }
+    }
+  };
+
+  // Get current vote from history
+  const getCurrentVote = (): ModelName | "tie" | null => {
+    if (history.value.length === 0) return null;
+    const index = currentHistoryIndex.value === -1 
+      ? history.value.length - 1 
+      : currentHistoryIndex.value;
+    return history.value[index]?.vote || null;
+  };
+
+  // Clear history on reset
+  const clearHistory = () => {
+    history.value = [];
+    currentHistoryIndex.value = -1;
+    promptStartTimes.value = {};
+    if (import.meta.client) {
+      localStorage.removeItem('hp_prompt_history');
+      localStorage.removeItem('hp_history_index');
     }
   };
 
@@ -174,5 +288,9 @@ export const useVoting = () => {
     isDone,
     getNext,
     vote,
+    goBack,
+    canGoBack,
+    getCurrentVote,
+    clearHistory,
   };
 };

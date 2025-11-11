@@ -6,7 +6,12 @@
     @click="emit('choose')"
   >
     <Card
-      class="overflow-hidden rounded-2xl ring-1 ring-border bg-card transition group-hover:ring-primary/40 group-hover:shadow md:active:scale-[.995]"
+      :class="[
+        'overflow-hidden rounded-2xl ring-1 bg-card transition group-hover:shadow md:active:scale-[.995]',
+        selected 
+          ? 'ring-2 ring-primary' 
+          : 'ring-border group-hover:ring-primary/40'
+      ]"
     >
       <!-- A/B label pill -->
       <div class="absolute left-3 top-3 z-10">
@@ -69,10 +74,12 @@ const props = withDefaults(
     src: string;
     alt?: string;
     disabled?: boolean;
+    selected?: boolean;
   }>(),
   {
     alt: "",
     disabled: false,
+    selected: false,
   }
 );
 

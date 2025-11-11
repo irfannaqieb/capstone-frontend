@@ -97,32 +97,47 @@
 
       <!-- Main Content -->
       <template v-else-if="prompt">
-        <!-- Start Fresh Button - Fixed at Top -->
-        <div class="w-full flex justify-end gap-2 mb-2 md:mb-0 md:absolute md:top-4 md:right-4 lg:right-8 md:z-10">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Toggle theme"
-            @click="toggleTheme"
-          >
-            <Sun v-if="theme === 'light'" class="h-4 w-4" />
-            <Moon v-else class="h-4 w-4" />
-          </Button>
+        <!-- Top Navigation Bar -->
+        <div class="w-full flex justify-between items-center gap-2 mb-2 md:mb-0 md:absolute md:top-4 md:left-4 md:right-4 lg:left-8 lg:right-8 md:z-10">
+          <!-- Back Button - Left Side -->
           <Button
             variant="ghost"
             size="sm"
-            class="text-xs text-muted-foreground hover:text-destructive"
-            @click="confirmReset"
-            :disabled="isLoading"
+            class="text-xs"
+            @click="goBack"
+            :disabled="!canGoBack || isLoading"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-              <path d="M21 3v5h-5"/>
-              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-              <path d="M3 21v-5h5"/>
-            </svg>
-            Start Fresh
+            <ChevronLeft class="h-4 w-4 mr-1" />
+            Back
           </Button>
+          
+          <!-- Theme & Start Fresh - Right Side -->
+          <div class="flex gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Toggle theme"
+              @click="toggleTheme"
+            >
+              <Sun v-if="theme === 'light'" class="h-4 w-4" />
+              <Moon v-else class="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              class="text-xs text-muted-foreground hover:text-destructive"
+              @click="confirmReset"
+              :disabled="isLoading"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                <path d="M21 3v5h-5"/>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                <path d="M3 21v-5h5"/>
+              </svg>
+              Start Fresh
+            </Button>
+          </div>
         </div>
 
         <!-- Header Section -->
@@ -132,8 +147,8 @@
               Image Preference Selection
             </h1>
             <p class="text-sm md:text-base text-muted-foreground">
-              Choose the image that you think looks best, or select "Tie" if you
-              can't decide
+              Select <span class="font-semibold">one image</span> that you think looks best, or choose "Tie" if you
+              can't decide between them
             </p>
           </div>
 
@@ -159,6 +174,7 @@
               :label="getLabel(index)"
               :src="image.url"
               :disabled="isLoading"
+              :selected="currentVote === image.model"
               @choose="choose(image.model)"
             />
           </div>
@@ -169,7 +185,12 @@
           <Button
             variant="outline"
             size="lg"
-            class="min-w-[200px] border-2 hover:border-primary hover:bg-primary/5"
+            :class="[
+              'min-w-[200px] border-2 hover:bg-primary/5',
+              currentVote === 'tie' 
+                ? 'border-primary ring-2 ring-primary' 
+                : 'hover:border-primary'
+            ]"
             :disabled="isLoading"
             @click="choose('tie')"
           >
@@ -190,14 +211,17 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, computed } from "vue";
 import { Button } from "@/components/ui/button";
-import { Sun, Moon } from "lucide-vue-next";
+import { Sun, Moon, ChevronLeft } from "lucide-vue-next";
 import type { ModelName } from "~/types/vote";
 
-const { prompt, isLoading, errorMsg, isDone, getNext, vote } = useVoting();
+const { prompt, isLoading, errorMsg, isDone, getNext, vote, goBack, canGoBack, getCurrentVote, clearHistory } = useVoting();
 const { resetSession } = useSessionId();
 const { theme, toggleTheme } = useColorMode();
+
+// Get current vote to highlight selected choice
+const currentVote = computed(() => getCurrentVote());
 
 const isResetting = ref(false);
 
@@ -242,6 +266,7 @@ async function handleStartFresh() {
   
   try {
     isResetting.value = true;
+    clearHistory();
     await resetSession();
     // Session is reset, now fetch the first prompt
     await getNext();
