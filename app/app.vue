@@ -1,12 +1,12 @@
 <template>
   <div
-    class="min-h-screen w-full bg-gradient-to-br from-background via-background to-muted/10 dark:to-muted/5"
+    class="h-screen w-screen overflow-hidden bg-gradient-to-br from-background via-background to-muted/10 dark:to-muted/5"
   >
     <div
-      class="mx-auto flex min-h-screen w-full flex-col items-center justify-center gap-8 p-4 md:p-8 lg:p-12"
+      class="relative mx-auto flex h-full w-full max-w-full flex-col items-center justify-center gap-8 p-4 md:p-8 lg:p-12 overflow-y-auto overflow-x-hidden"
     >
       <!-- Loading State -->
-      <div v-if="isLoading && !prompt" class="text-center space-y-4">
+      <div v-if="isLoading && !prompt" class="w-full text-center space-y-4">
         <div class="absolute top-4 right-4 lg:right-8 z-10">
           <Button
             variant="ghost"
@@ -25,7 +25,7 @@
       </div>
 
       <!-- Error State -->
-      <div v-else-if="errorMsg" class="text-center space-y-4">
+      <div v-else-if="errorMsg" class="w-full text-center space-y-4">
         <div class="absolute top-4 right-4 lg:right-8 z-10">
           <Button
             variant="ghost"
@@ -51,7 +51,7 @@
       </div>
 
       <!-- Done State -->
-      <div v-else-if="isDone" class="text-center space-y-6 max-w-md mx-auto">
+      <div v-else-if="isDone" class="w-full max-w-md mx-auto text-center space-y-6">
         <div class="absolute top-4 right-4 lg:right-8 z-10">
           <Button
             variant="ghost"
@@ -98,12 +98,12 @@
       <!-- Main Content -->
       <template v-else-if="prompt">
         <!-- Top Navigation Bar -->
-        <div class="w-full flex justify-between items-center gap-2 mb-2 md:mb-0 md:absolute md:top-4 md:left-4 md:right-4 lg:left-8 lg:right-8 md:z-10">
+        <div class="w-full flex justify-between items-center gap-2 mb-2 md:mb-0 md:absolute md:top-4 md:inset-x-0 px-4 md:px-8 lg:px-12 md:z-10 overflow-hidden">
           <!-- Back Button - Left Side -->
           <Button
             variant="ghost"
             size="sm"
-            class="text-xs"
+            class="text-xs flex-shrink-0"
             @click="goBack"
             :disabled="!canGoBack || isLoading"
           >
@@ -112,11 +112,12 @@
           </Button>
           
           <!-- Theme & Start Fresh - Right Side -->
-          <div class="flex gap-2">
+          <div class="flex gap-2 flex-shrink-0">
             <Button
               variant="ghost"
               size="icon"
               aria-label="Toggle theme"
+              class="flex-shrink-0"
               @click="toggleTheme"
             >
               <Sun v-if="theme === 'light'" class="h-4 w-4" />
@@ -125,7 +126,7 @@
             <Button
               variant="ghost"
               size="sm"
-              class="text-xs text-muted-foreground hover:text-destructive"
+              class="text-xs text-muted-foreground hover:text-destructive whitespace-nowrap flex-shrink-0"
               @click="confirmReset"
               :disabled="isLoading"
             >
@@ -166,7 +167,7 @@
         <!-- Image Grid -->
         <div class="w-full px-4 md:px-8">
           <div
-            class="grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-8 max-w-[1800px] mx-auto"
+            class="grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-8 w-full max-w-[1800px] mx-auto"
           >
             <ImageChoice
               v-for="(image, index) in prompt.images"
