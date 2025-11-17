@@ -3,7 +3,7 @@
     <!-- Badge with single-line truncate -->
     <Badge
       variant="secondary"
-      class="max-w-full cursor-default whitespace-nowrap overflow-hidden text-ellipsis px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold bg-primary/10 border-2 border-primary/20 hover:border-primary/40 transition-all shadow-sm"
+      class="max-w-full cursor-default whitespace-nowrap overflow-hidden text-ellipsis px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm md:text-base font-semibold bg-primary/10 border-2 border-primary/20 hover:border-primary/40 transition-all shadow-sm"
       :title="text"
     >
       {{ text }}

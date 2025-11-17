@@ -3,7 +3,7 @@
     class="h-screen w-screen overflow-hidden bg-gradient-to-br from-background via-background to-muted/10 dark:to-muted/5"
   >
     <div
-      class="relative mx-auto flex h-full w-full max-w-full flex-col items-center justify-center gap-8 p-4 md:p-8 lg:p-12 overflow-y-auto overflow-x-hidden"
+      class="relative mx-auto flex h-full w-full max-w-full flex-col items-center justify-start gap-8 p-4 md:p-8 lg:p-12 overflow-y-auto overflow-x-hidden"
     >
       <!-- Loading State -->
       <div v-if="isLoading && !prompt" class="w-full text-center space-y-4">
