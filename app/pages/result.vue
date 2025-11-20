@@ -25,6 +25,16 @@
           </Button>
           <Button
             variant="ghost"
+            size="icon"
+            aria-label="Toggle theme"
+            class="flex-shrink-0"
+            @click="toggleTheme"
+          >
+            <Sun v-if="theme === 'light'" class="h-4 w-4" />
+            <Moon v-else class="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
             size="sm"
             class="text-xs text-muted-foreground hover:text-destructive whitespace-nowrap flex-shrink-0"
             :disabled="isResetting"
@@ -128,7 +138,7 @@ import { useRouter } from "vue-router";
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, type ChartData, type ChartOptions } from "chart.js";
 import { Bar } from "vue-chartjs";
 import { Button } from "@/components/ui/button";
-import { Home } from "lucide-vue-next";
+import { Home, Sun, Moon } from "lucide-vue-next";
 import type { VoteResults } from "~/types/vote";
 
 // Register Chart.js components on client
@@ -140,6 +150,7 @@ const router = useRouter();
 const { $api } = useNuxtApp();
 const { resetSession } = useSessionId();
 const { clearHistory, isDone } = useVoting();
+const { theme, toggleTheme } = useColorMode();
 
 const results = ref<VoteResults | null>(null);
 const loading = ref(true);
@@ -210,6 +221,9 @@ const handleStartFresh = async () => {
 };
 
 const chartData = computed<ChartData<"bar">>(() => {
+  // Make this reactive to theme changes
+  const currentTheme = theme.value;
+  
   if (!results.value) {
     return {
       labels: [],
@@ -222,8 +236,8 @@ const chartData = computed<ChartData<"bar">>(() => {
     Number(m.win_percentage.toFixed(2))
   );
 
-  const barColor = getCssVar("--chart-1", "rgba(59, 130, 246, 0.7)");
-  const barBorderColor = getCssVar("--primary", "rgba(37, 99, 235, 1)");
+  const barColor = getCssVar("--chart-1", currentTheme === "dark" ? "rgba(99, 102, 241, 0.7)" : "rgba(59, 130, 246, 0.7)");
+  const barBorderColor = getCssVar("--primary", currentTheme === "dark" ? "rgba(148, 163, 184, 1)" : "rgba(37, 99, 235, 1)");
 
   return {
     labels,
@@ -241,9 +255,12 @@ const chartData = computed<ChartData<"bar">>(() => {
 });
 
 const chartOptions = computed<ChartOptions<"bar">>(() => {
-  const foreground = getCssVar("--foreground", "#020617");
-  const mutedForeground = getCssVar("--muted-foreground", "#6b7280");
-  const borderColor = getCssVar("--border", "#e5e7eb");
+  // Make this reactive to theme changes
+  const currentTheme = theme.value;
+  
+  const foreground = getCssVar("--foreground", currentTheme === "dark" ? "#f8fafc" : "#020617");
+  const mutedForeground = getCssVar("--muted-foreground", currentTheme === "dark" ? "#cbd5e1" : "#6b7280");
+  const borderColor = getCssVar("--border", currentTheme === "dark" ? "#334155" : "#e5e7eb");
 
   return {
     responsive: true,
@@ -301,7 +318,11 @@ const chartOptions = computed<ChartOptions<"bar">>(() => {
         title: {
           display: true,
           text: "Win Percentage",
-          color: mutedForeground,
+          color: foreground,
+          font: {
+            family:
+              "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+          },
         },
       },
     },
