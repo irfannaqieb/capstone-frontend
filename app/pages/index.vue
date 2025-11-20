@@ -50,7 +50,7 @@
         </div>
       </div>
 
-      <!-- Done State (will immediately redirect to /result) -->
+      <!-- Done State -->
       <div v-else-if="isDone" class="w-full max-w-md mx-auto text-center space-y-6">
         <div class="absolute top-4 right-4 lg:right-8 z-10">
           <Button
@@ -67,8 +67,33 @@
         <div class="space-y-2">
           <h2 class="text-2xl md:text-3xl font-bold">All Done!</h2>
           <p class="text-muted-foreground">
-            Thank you for participating in this preference survey. Redirecting you to the results...
+            Thank you for participating in this preference survey.
           </p>
+        </div>
+        <div class="pt-2 flex flex-row gap-3 justify-center items-center">
+          <Button
+            variant="default"
+            size="lg"
+            :disabled="true"
+            @click="goToResults"
+          >
+            See Result
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            class="text-muted-foreground hover:text-destructive"
+            @click="confirmReset"
+            :disabled="isResetting"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+              <path d="M21 3v5h-5"/>
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+              <path d="M3 21v-5h5"/>
+            </svg>
+            {{ isResetting ? 'Resetting...' : 'Start Fresh' }}
+          </Button>
         </div>
       </div>
 
@@ -189,7 +214,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed, watch } from "vue";
+import { onMounted, ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { Button } from "@/components/ui/button";
 import { Sun, Moon, ChevronLeft } from "lucide-vue-next";
@@ -203,17 +228,6 @@ const router = useRouter();
 const { prompt, isLoading, errorMsg, isDone, getNext, vote, goBack, canGoBack, getCurrentVote, clearHistory } = useVoting();
 const { resetSession } = useSessionId();
 const { theme, toggleTheme } = useColorMode();
-
-// Redirect to results page when voting is done
-watch(
-  isDone,
-  (done) => {
-    if (done && router.currentRoute.value.path !== "/result") {
-      router.push("/result");
-    }
-  },
-  { immediate: true }
-);
 
 // Get current vote to highlight selected choice
 const currentVote = computed(() => getCurrentVote());
@@ -270,6 +284,11 @@ async function handleStartFresh() {
   } finally {
     isResetting.value = false;
   }
+}
+
+// Navigate to results page
+function goToResults() {
+  router.push("/result");
 }
 </script>
 
