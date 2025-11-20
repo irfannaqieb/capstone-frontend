@@ -275,6 +275,8 @@ export const useVoting = () => {
     history.value = [];
     currentHistoryIndex.value = -1;
     promptStartTimes.value = {};
+    isDone.value = false; // Reset done state when clearing history
+    errorMsg.value = null; // Also clear any error messages
     if (import.meta.client) {
       localStorage.removeItem('hp_prompt_history');
       localStorage.removeItem('hp_history_index');

@@ -37,3 +37,17 @@ export interface PromptHistory {
   prompt: PromptDTO;
   vote: ModelName | "tie" | null;
 }
+
+export interface ModelResult {
+  model_id: ModelName;
+  display_name: string;
+  wins: number;
+  win_percentage: number;
+}
+
+export interface VoteResults {
+  total_votes: number;
+  total_decisive_votes: number;
+  tie_votes: number;
+  models: ModelResult[];
+}
