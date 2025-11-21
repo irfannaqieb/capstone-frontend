@@ -74,7 +74,6 @@
           <Button
             variant="default"
             size="lg"
-            :disabled="true"
             @click="goToResults"
           >
             See Result
@@ -98,7 +97,7 @@
       </div>
 
       <!-- Main Content -->
-      <template v-else-if="prompt">
+      <template v-else-if="prompt && !VOTING_CLOSED">
         <!-- Top Navigation Bar -->
         <div class="w-full flex justify-between items-center gap-2 mb-2 md:mb-0 md:absolute md:top-4 md:inset-x-0 px-4 md:px-8 lg:px-12 md:z-10 overflow-hidden">
           <!-- Back Button - Left Side -->
@@ -225,6 +224,9 @@ import ImageChoice from "@/components/ImageChoice.vue";
 
 const router = useRouter();
 
+// Voting is now closed - redirect to results page
+const VOTING_CLOSED = true;
+
 const { prompt, isLoading, errorMsg, isDone, getNext, vote, goBack, canGoBack, getCurrentVote, clearHistory } = useVoting();
 const { resetSession } = useSessionId();
 const { theme, toggleTheme } = useColorMode();
@@ -234,9 +236,11 @@ const currentVote = computed(() => getCurrentVote());
 
 const isResetting = ref(false);
 
-// Load first prompt on mount
+// Redirect to results page on mount since voting is closed
 onMounted(() => {
-  if (!prompt.value) {
+  if (VOTING_CLOSED) {
+    router.push("/result");
+  } else if (!prompt.value) {
     getNext();
   }
 });
