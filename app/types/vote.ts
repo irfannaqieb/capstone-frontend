@@ -51,3 +51,31 @@ export interface VoteResults {
   tie_votes: number;
   models: ModelResult[];
 }
+
+export interface PromptResultModel {
+  model_id: ModelName;
+  display_name: string;
+  wins: number;
+  win_percentage: number;
+}
+
+export interface PromptResultImage {
+  image_id: string;
+  url: string;
+  model: ModelName;
+}
+
+export interface PromptResult {
+  prompt_id: string;
+  prompt_text: string;
+  images: PromptResultImage[];
+  total_votes: number;
+  tie_votes: number;
+  models: PromptResultModel[];
+  winning_model_id: ModelName | null;
+  winning_image_id: string | null;
+}
+
+export interface PromptResultsResponse {
+  prompts: PromptResult[];
+}
