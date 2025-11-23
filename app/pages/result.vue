@@ -351,9 +351,48 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
 
-// Register Chart.js components on client
+// Register Chart.js components and plugins on client
 if (import.meta.client) {
   ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+  
+  // Register custom plugin to display percentage labels on bars
+  ChartJS.register({
+    id: 'datalabels',
+    afterDatasetsDraw: (chart: any) => {
+      // Get foreground color dynamically at draw time
+      const getCssVarAtRuntime = (name: string, fallback: string): string => {
+        if (typeof window !== "undefined") {
+          const value = getComputedStyle(document.documentElement).getPropertyValue(name);
+          if (value) return value.trim();
+        }
+        return fallback;
+      };
+      
+      // Detect theme by checking if dark mode class exists
+      const isDark = typeof window !== "undefined" && document.documentElement.classList.contains('dark');
+      const foreground = getCssVarAtRuntime("--foreground", isDark ? "#f8fafc" : "#020617");
+      
+      const ctx = chart.ctx;
+      chart.data.datasets.forEach((dataset: any, i: number) => {
+        const meta = chart.getDatasetMeta(i);
+        meta.data.forEach((bar: any, index: number) => {
+          const value = dataset.data[index];
+          if (value !== null && value !== undefined) {
+            const x = bar.x;
+            const y = bar.y;
+            
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillStyle = foreground;
+            ctx.font = 'bold 12px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.fillText(`${value.toFixed(2)}%`, x, y - 5);
+            ctx.restore();
+          }
+        });
+      });
+    },
+  });
 }
 
 const router = useRouter();
